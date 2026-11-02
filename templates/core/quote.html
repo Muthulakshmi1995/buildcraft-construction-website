@@ -1,0 +1,2 @@
+{% extends "core/inner.html" %}{% block title %}Get a Quote | BuildCraft{% endblock %}{% block page_heading %}Tell us what you're <em>imagining.</em>{% endblock %}{% block page_subtitle %}Share your requirements and request a project consultation.{% endblock %}
+{% block inner_content %}<section class="section-pad"><div class="container narrow-copy"><form method="post" class="form-card">{% csrf_token %}{{ form.as_p }}<button class="btn btn-dark-green btn-lg">Submit quote request ↗</button></form></div></section>{% endblock %}
