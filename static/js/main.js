@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     e.preventDefault();const message=input.value.trim();if(!message)return;addMessage(message,"user-msg");input.value="";
     const waiting=addMessage("Thinking...","bot-msg");
     try{const response=await fetch("/chatbot/",{method:"POST",headers:{"Content-Type":"application/json","X-CSRFToken":getCookie("csrftoken")},body:JSON.stringify({message})});const data=await response.json();waiting.textContent=data.reply||"Sorry, I couldn't prepare a reply."}
-    catch(err){waiting.textContent="Sorry, the assistant is temporarily unavailable. Please use our Contact page."}
+    catch(error){waiting.textContent="Sorry, the assistant is temporarily unavailable. Please use our Contact page."}
   });
   function getCookie(name){let value=null;if(document.cookie){document.cookie.split(";").forEach(cookie=>{const c=cookie.trim();if(c.startsWith(name+"="))value=decodeURIComponent(c.substring(name.length+1))})}return value}
 });

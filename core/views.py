@@ -1,4 +1,7 @@
+
 import json
+from google import genai
+from openai import OpenAI
 from django.conf import settings
 from django.contrib import messages
 from django.http import JsonResponse
@@ -39,51 +42,46 @@ def quote(request):
         form.save(); messages.success(request, "Your quotation request has been submitted."); return redirect("quote")
     return render(request, "core/quote.html", {"form": form})
 
+
 @require_POST
 def chatbot(request):
-    """Rule-based BuildCraft assistant. Works without an OpenAI API key."""
     try:
         payload = json.loads(request.body.decode("utf-8"))
         question = payload.get("message", "").strip()[:1000]
-    except Exception:
-        return JsonResponse({"reply": "Please type your question and try again."}, status=400)
-    if not question:
-        return JsonResponse({"reply": "Please type a question."}, status=400)
 
-    q = question.lower()
-    if any(x in q for x in ["hi", "hello", "hey", "good morning", "good evening"]):
-        answer = ("Welcome to BuildCraft. I can assist with our construction services, "
-                  "project information and quotation enquiries. What would you like to know?")
-    elif any(x in q for x in ["service", "what do you do", "provide", "construction type"]):
-        answer = ("BuildCraft supports residential construction, commercial construction, "
-                  "renovation and remodelling, architectural planning, interior works, and "
-                  "building maintenance. Please visit the Services page to review each service, "
-                  "or use Get a Quote to discuss the requirements for your project.")
-    elif any(x in q for x in ["quote", "quotation", "estimate", "price", "cost", "budget", "rate"]):
-        answer = ("We would be pleased to prepare a project-specific estimate. The cost depends "
-                  "on the site location, built-up area, design, materials, specifications and "
-                  "project timeline. Please submit the Get a Quote form with your name, contact "
-                  "details and a short description of the work. Our team can then review your enquiry.")
-    elif any(x in q for x in ["project", "portfolio", "completed work", "previous work", "work sample"]):
-        answer = ("You can explore selected residential and commercial construction work on our "
-                  "Projects page. Each project highlights a different approach to planning, "
-                  "design and construction. For information about a specific project, please "
-                  "send us an enquiry through the Contact page.")
-    elif any(x in q for x in ["contact", "phone", "email", "address", "location", "reach"]):
-        answer = ("Thank you for your interest in BuildCraft. Please visit the Contact page and "
-                  "submit the enquiry form. You can also use the Get a Quote form if you would "
-                  "like to discuss a new construction or renovation project.")
-    elif any(x in q for x in ["time", "duration", "how long", "days", "months"]):
-        answer = ("The project duration depends on the building size, design approvals, site "
-                  "conditions, material selection and scope of work. Share your project details "
-                  "through Get a Quote so the team can review a suitable timeline.")
-    elif any(x in q for x in ["material", "cement", "steel", "quality"]):
-        answer = ("Material selection is based on the project design, technical requirements "
-                  "and the client's preferences. Please include your material or quality "
-                  "requirements in the Get a Quote form so they can be discussed during planning.")
-    else:
-        answer = ("Thank you for contacting BuildCraft. I can help with three areas: our "
-                  "construction services, our project portfolio, and quotation enquiries. "
-                  "Please choose one of the options above or describe your construction "
-                  "requirement. For other enquiries, our Contact page is the best place to start.")
-    return JsonResponse({"reply": answer})
+        if not question:
+            return JsonResponse(
+                {"reply": "Please type your question."},
+                status=400
+            )
+
+        client = genai.Client(
+            api_key=settings.GEMINI_API_KEY
+        )
+
+        response = client.models.generate_content(
+            model="gemini-3.5-flash-lite",
+            contents=question,
+            config={
+                "system_instruction": (
+                    "You are BuildBot, the friendly AI assistant for "
+                    "BuildCraft Construction Website. Answer naturally "
+                    "and helpfully. You can answer general questions and "
+                    "construction-related questions. For BuildCraft-specific "
+                    "prices, contact details or project facts that are not "
+                    "provided, do not invent information. Guide users to "
+                    "the Contact or Get a Quote page. Keep answers simple "
+                    "and clear."
+                )
+            }
+        )
+
+        answer = response.text
+        return JsonResponse({"reply": answer})
+
+    except Exception as error:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            "reply": str(error)
+        }, status=500)
